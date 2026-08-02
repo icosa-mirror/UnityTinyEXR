@@ -21,6 +21,15 @@ public static class TinyExr
         out IntPtr errorMessage);
 
     [DllImport(NativeLibrary, CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr tinyexr_load_rgb9e5_from_memory(
+        [In] byte[] buffer,
+        int len,
+        out int width,
+        out int height,
+        int flipVertically,
+        out IntPtr errorMessage);
+
+    [DllImport(NativeLibrary, CallingConvention = CallingConvention.Cdecl)]
     private static extern int tinyexr_is_exr_from_memory([In] byte[] buffer, int len);
 
     [DllImport(NativeLibrary, CallingConvention = CallingConvention.Cdecl)]
@@ -132,6 +141,53 @@ public static class TinyExr
     public static Texture2D LoadTexture2D(byte[] bytes, bool linear = true, bool mipChain = false)
     {
         return Load(bytes).ToTexture2D(linear, mipChain);
+    }
+
+    public static Texture2D LoadRgb9e5Texture2D(byte[] bytes, bool flipVertically = true)
+    {
+        if (bytes == null)
+            throw new ArgumentNullException(nameof(bytes));
+        if (bytes.Length == 0)
+            throw new ArgumentException("EXR data is empty.", nameof(bytes));
+
+        IntPtr errorMessage;
+        IntPtr data = tinyexr_load_rgb9e5_from_memory(
+            bytes,
+            bytes.Length,
+            out int width,
+            out int height,
+            flipVertically ? 1 : 0,
+            out errorMessage);
+
+        if (data == IntPtr.Zero)
+            throw CreateLoadException(errorMessage);
+
+        Texture2D texture = null;
+        try
+        {
+            if (width <= 0 || height <= 0)
+                throw new InvalidOperationException("TinyEXR returned an invalid image size.");
+
+            int byteCount = checked(width * height * sizeof(uint));
+            texture = new Texture2D(
+                width, height, TextureFormat.RGB9e5Float, false, true);
+            texture.LoadRawTextureData(data, byteCount);
+            texture.Apply(false, true);
+            return texture;
+        }
+        catch
+        {
+            if (texture != null)
+                UnityEngine.Object.Destroy(texture);
+            throw;
+        }
+        finally
+        {
+            tinyexr_free(data);
+
+            if (errorMessage != IntPtr.Zero)
+                tinyexr_free_error(errorMessage);
+        }
     }
 
     private static void CopyColors(

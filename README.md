@@ -75,6 +75,14 @@ For only `Color[]`:
 Color[] colors = TinyExr.LoadColors(bytes, out int width, out int height);
 ```
 
+For HDR backgrounds, use the packed texture path. It avoids managed float and
+`Color[]` copies, uploads four bytes per pixel, and releases Unity's CPU texture
+copy after upload:
+
+```csharp
+Texture2D texture = TinyExr.LoadRgb9e5Texture2D(bytes);
+```
+
 `Load(...)` and `LoadFile(...)` flip vertically by default to match Unity texture usage. Pass `false` to keep the raw row order produced by tinyexr.
 
 ## Notes

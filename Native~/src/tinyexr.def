@@ -2,6 +2,8 @@ LIBRARY "TinyExr"
 
 EXPORTS
     tinyexr_load_rgba_from_memory
+    tinyexr_load_rgb9e5_from_memory
+    tinyexr_pack_rgb9e5
     tinyexr_is_exr_from_memory
     tinyexr_free
     tinyexr_free_error
