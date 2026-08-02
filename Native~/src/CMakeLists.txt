@@ -50,5 +50,15 @@ endforeach()
 if(TINYEXR_UNITY_BUILD_TESTS AND NOT CMAKE_CROSSCOMPILING)
     add_executable(TinyExrSmokeTest tinyexr_smoke_test.cpp)
     target_link_libraries(TinyExrSmokeTest PRIVATE TinyExr)
+    set_target_properties(TinyExrSmokeTest PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${TINYEXR_UNITY_OUTPUT_DIRECTORY}"
+    )
+    foreach(CONFIG_TYPE DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
+        string(TOUPPER "${CONFIG_TYPE}" CONFIG_TYPE_UPPER)
+        set_target_properties(TinyExrSmokeTest PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY_${CONFIG_TYPE_UPPER}
+                "${TINYEXR_UNITY_OUTPUT_DIRECTORY}"
+        )
+    endforeach()
     add_test(NAME TinyExrSmokeTest COMMAND TinyExrSmokeTest)
 endif()
