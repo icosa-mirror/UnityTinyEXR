@@ -2,33 +2,49 @@
 
 [syoyo/tinyexr](https://github.com/syoyo/tinyexr) wrapper for Unity.
 
-It loads EXR bytes or files directly in Unity and returns `UnityEngine.Color[]`.
+It loads EXR bytes or files at runtime and returns `UnityEngine.Color[]`.
+
+## Supported platforms
+
+- Windows x86-64
+- Linux x86-64
+- macOS x86-64 and Apple silicon (universal binary)
+- Android ARM64
+- iOS ARM64
+
+Native plugins for every platform are built by GitHub Actions. The workflow also
+assembles a complete UPM tarball containing all five platform artifacts.
+
+## Install with Unity Package Manager
+
+Install a package tarball produced by the `Build native plugins` workflow, or
+add a released package URL through Unity Package Manager.
+
+The package identifier is `com.icosa.unitytinyexr`.
 
 ## Build the native plugin
 
 ```powershell
-cmake -S native -B native/build -A x64
-cmake --build native/build --config Release
+cmake -S "Native~" -B build/windows -A x64
+cmake --build build/windows --config Release
 ```
 
-The Windows x64 plugin is emitted to:
+By default, the plugin is emitted to `build/windows/plugin`. Override the
+destination with `TINYEXR_UNITY_OUTPUT_DIRECTORY`.
 
-```text
-TinyExr/x64/TinyExr.dll
+For example:
+
+```powershell
+cmake -S "Native~" -B build/windows -A x64 `
+  -DTINYEXR_UNITY_OUTPUT_DIRECTORY="$PWD/Runtime/Plugins/Windows/x86_64"
 ```
-
-Copy the `TinyExr` folder into your Unity project's `Assets` folder.
 
 ## Project layout
 
 ```text
-TinyExr/                         Unity runtime files
-  TinyExr.cs
-  x64/TinyExr.dll
-
-native/                          Native plugin source and build files
-  src/                            Unity-facing wrapper exports
-  tinyexr/                        syoyo/tinyexr files in upstream layout
+Runtime/                         Unity runtime assembly and native plugins
+Native~/                         Native source and CMake project
+.github/workflows/               Cross-platform builds and UPM packaging
 ```
 
 ## Unity usage
@@ -66,3 +82,5 @@ Color[] colors = TinyExr.LoadColors(bytes, out int width, out int height);
 - Uses tinyexr's stable v1 `LoadEXRFromMemory` API and bundled `miniz`.
 - Returns RGBA float data, mapped one-to-one into `UnityEngine.Color`.
 - Layered EXR channels such as `diffuse.R` require tinyexr's layer-specific API and are not exposed by this minimal wrapper yet.
+- iOS statically links the native library and resolves it through `__Internal`.
+- Android currently targets ARM64, matching modern Unity mobile builds.

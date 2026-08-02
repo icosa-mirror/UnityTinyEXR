@@ -1,0 +1,18 @@
+{
+  "name": "com.icosa.unitytinyexr",
+  "version": "0.1.0",
+  "displayName": "Unity TinyEXR",
+  "description": "Runtime OpenEXR image loading for Unity on desktop and mobile platforms.",
+  "unity": "2021.3",
+  "license": "MIT",
+  "author": {
+    "name": "Icosa Foundation",
+    "url": "https://icosa.foundation"
+  },
+  "keywords": [
+    "exr",
+    "openexr",
+    "hdr",
+    "texture"
+  ]
+}

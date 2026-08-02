@@ -1,4 +1,7 @@
-native/build/
+Native~/build/
+build/
+staging/
+*.tgz
 .tinyexr-upstream/
 .unitystb-reference/
 *.sln

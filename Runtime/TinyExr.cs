@@ -5,7 +5,11 @@ using UnityEngine;
 
 public static class TinyExr
 {
+#if UNITY_IOS && !UNITY_EDITOR
+    private const string NativeLibrary = "__Internal";
+#else
     private const string NativeLibrary = "TinyExr";
+#endif
     private const int RgbaChannelCount = 4;
 
     [DllImport(NativeLibrary, CallingConvention = CallingConvention.Cdecl)]

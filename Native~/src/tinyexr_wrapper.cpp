@@ -3,7 +3,7 @@
 
 #include "tinyexr.h"
 
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(TINYEXR_UNITY_STATIC)
 #define TINYEXR_UNITY_API __declspec(dllexport)
 #else
 #define TINYEXR_UNITY_API __attribute__((visibility("default")))
