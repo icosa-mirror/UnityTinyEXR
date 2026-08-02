@@ -100,6 +100,10 @@ jobs:
           -DTINYEXR_UNITY_OUTPUT_DIRECTORY="$GITHUB_WORKSPACE/staging/android"
       - name: Build
         run: cmake --build build/android --parallel
+      - name: Strip
+        run: >-
+          "$ANDROID_SDK_ROOT/ndk/$NDK_VERSION/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip"
+          --strip-unneeded staging/android/libTinyExr.so
       - uses: actions/upload-artifact@v7
         with:
           name: plugin-android-arm64
