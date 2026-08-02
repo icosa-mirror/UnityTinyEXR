@@ -83,6 +83,14 @@ copy after upload:
 Texture2D texture = TinyExr.LoadRgb9e5Texture2D(bytes);
 ```
 
+The packed texture is non-readable by default. Pass `makeNoLongerReadable: false` when
+the caller needs CPU access to the packed texture data, for example while populating a cache:
+
+```csharp
+Texture2D readableTexture = TinyExr.LoadRgb9e5Texture2D(
+    bytes, makeNoLongerReadable: false);
+```
+
 `Load(...)` and `LoadFile(...)` flip vertically by default to match Unity texture usage. Pass `false` to keep the raw row order produced by tinyexr.
 
 ## Notes

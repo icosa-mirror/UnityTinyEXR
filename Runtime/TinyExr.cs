@@ -143,7 +143,10 @@ public static class TinyExr
         return Load(bytes).ToTexture2D(linear, mipChain);
     }
 
-    public static Texture2D LoadRgb9e5Texture2D(byte[] bytes, bool flipVertically = true)
+    public static Texture2D LoadRgb9e5Texture2D(
+        byte[] bytes,
+        bool flipVertically = true,
+        bool makeNoLongerReadable = true)
     {
         if (bytes == null)
             throw new ArgumentNullException(nameof(bytes));
@@ -172,7 +175,7 @@ public static class TinyExr
             texture = new Texture2D(
                 width, height, TextureFormat.RGB9e5Float, false, true);
             texture.LoadRawTextureData(data, byteCount);
-            texture.Apply(false, true);
+            texture.Apply(false, makeNoLongerReadable);
             return texture;
         }
         catch
