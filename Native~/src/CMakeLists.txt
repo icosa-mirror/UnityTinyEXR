@@ -23,6 +23,14 @@ target_include_directories(TinyExr PRIVATE
 )
 target_compile_definitions(TinyExr PRIVATE TINYEXR_USE_MINIZ=1)
 
+if(ANDROID)
+    # Support 16 KB memory pages with NDK r27 and older toolchains.
+    target_link_options(TinyExr PRIVATE
+        "-Wl,-z,max-page-size=16384"
+        "-Wl,-z,common-page-size=16384"
+    )
+endif()
+
 if(MSVC)
     target_compile_definitions(TinyExr PRIVATE NOMINMAX _CRT_SECURE_NO_WARNINGS)
 endif()
