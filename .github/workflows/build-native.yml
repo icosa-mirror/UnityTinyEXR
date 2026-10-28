@@ -2,6 +2,7 @@ name: Build native plugins
 
 on:
   push:
+    branches-ignore: [upm]
   pull_request:
   workflow_dispatch:
 
@@ -104,6 +105,27 @@ jobs:
         run: >-
           "$ANDROID_SDK_ROOT/ndk/$NDK_VERSION/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip"
           --strip-unneeded staging/android/libTinyExr.so
+      - name: Verify Android 16 KB alignment
+        shell: python
+        run: |
+          import pathlib
+          import struct
+
+          data = pathlib.Path("staging/android/libTinyExr.so").read_bytes()
+          assert data[:6] == b"\x7fELF\x02\x01", "Expected a little-endian ELF64 library"
+          offset = struct.unpack_from("<Q", data, 32)[0]
+          size, count = struct.unpack_from("<HH", data, 54)
+          segments = [struct.unpack_from("<IIQQQQQQ", data, offset + i * size)
+                      for i in range(count)]
+          loads = [s for s in segments if s[0] == 1]
+          assert loads, "No ELF LOAD segments"
+          for segment in loads:
+              assert segment[7] >= 16384, f"LOAD alignment is {segment[7]}"
+              assert (segment[3] - segment[2]) % 16384 == 0, "LOAD offsets are not congruent"
+          for segment in segments:
+              if segment[0] == 0x6474e552:
+                  assert (segment[3] + segment[6]) % 16384 == 0, "RELRO end is not 16 KB aligned"
+          print("Android LOAD and RELRO segments support 16 KB pages")
       - uses: actions/upload-artifact@v7
         with:
           name: plugin-android-arm64
@@ -168,3 +190,60 @@ jobs:
           name: unitytinyexr-upm
           path: '*.tgz'
           if-no-files-found: error
+
+
+  publish-upm:
+    name: Publish UPM branch
+    needs: upm-package
+    if: >-
+      github.event_name != 'pull_request' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/cross-platform-upm')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: publish-upm
+      cancel-in-progress: false
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: unitytinyexr-upm
+          path: artifact
+      - name: Publish CI-built package
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          packages=(artifact/*.tgz)
+          if [[ ${#packages[@]} -ne 1 ]]; then
+            echo "Expected exactly one UPM tarball" >&2
+            exit 1
+          fi
+          mkdir package
+          tar -xzf "${packages[0]}" -C package --strip-components=1
+          cd package
+          git init --initial-branch=upm
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add origin "https://github.com/${REPOSITORY}.git"
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          # Keep credentials out of the remote URL and committed package.
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0=http.https://github.com/.extraheader
+          export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic ${auth}"
+          git ls-remote --heads origin > "$RUNNER_TEMP/upm-heads"
+          if grep -q $'\trefs/heads/upm$' "$RUNNER_TEMP/upm-heads"; then
+            git fetch --depth=1 origin upm
+            git reset --mixed --quiet FETCH_HEAD
+          fi
+          git add --all
+          if git diff --cached --quiet; then
+            echo "UPM package is unchanged"
+            exit 0
+          fi
+          git commit -m "Publish UPM package from ${SOURCE_SHA}"
+          git push origin HEAD:refs/heads/upm
